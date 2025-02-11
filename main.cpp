@@ -1,8 +1,13 @@
 #include <iostream>
+#include <string>
 
 using namespace std;
 
+void uci_loop(){
+    
+}
+
 int main(){
-    cout << "Hello" << endl;
+    uci_loop();
     return 0;
 }
