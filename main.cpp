@@ -660,7 +660,7 @@ int main() {
                 mt19937 gen(rd());
                 uniform_int_distribution<> dis(0, legalMoves.size() - 1);
                 Move chosenMove = legalMoves[dis(gen)];
-                cout << "bestmove " << moveToUCI(chosenMove) << "\n";
+                cout << "bestmove " << moveToUCI(chosenMove) << endl;
             } else {
                 cout << "bestmove 0000\n";
             }
