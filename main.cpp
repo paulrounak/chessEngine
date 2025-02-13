@@ -591,10 +591,8 @@ public:
         board[move.from] = Piece::None;
         board[move.to] = fromPiece;
         
-        // Toggle side to move.
         sideToMove = (sideToMove == Piece::White) ? Piece::Black : Piece::White;
         
-        // Finally, push the move history.
         moveHistoryStack.push_back(history);
     }
 
