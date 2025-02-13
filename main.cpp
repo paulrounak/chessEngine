@@ -3,11 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <sstream>
-#include <cstdlib>
 #include <random>
-#include <cctype>
-#include <cmath>
-#include <algorithm>
 
 using namespace std;
 
