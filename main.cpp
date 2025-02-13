@@ -59,6 +59,24 @@ struct Move {
              isEnPassant(false), promotionPiece(Piece::None), isCastling(false) {}
 };
 
+struct MoveHistory {
+    Move move;
+    int capturedPiece;           
+    int movedPiece;           
+    int oldEnPassant;         
+    bool oldCanCastleKingsideWhite;
+    bool oldCanCastleQueensideWhite;
+    bool oldCanCastleKingsideBlack;
+    bool oldCanCastleQueensideBlack;
+
+    int rookFrom = -1;
+    int rookTo = -1;
+    int rookPiece = Piece::None;
+};
+
+// A history stack stored as a member variable.
+vector<MoveHistory> moveHistoryStack;
+
 class Board {
 public:
     vector<int> board;
@@ -483,13 +501,33 @@ public:
         return legalMoves;
     }
 
-    // Make a move – this function also updates castling rights and en passant targets.
     void makeMove(const Move& move) {
+        MoveHistory history;
+        history.move = move;
+        history.oldEnPassant = enPassantTarget;
+        history.oldCanCastleKingsideWhite = canCastleKingsideWhite;
+        history.oldCanCastleQueensideWhite = canCastleQueensideWhite;
+        history.oldCanCastleKingsideBlack = canCastleKingsideBlack;
+        history.oldCanCastleQueensideBlack = canCastleQueensideBlack;
+        
+        history.movedPiece = board[move.from];
+        history.capturedPiece = board[move.to];
+        
+        if (move.isCastling) {
+            if (move.to == move.from + 2) { // kingside
+                history.rookFrom = move.from + 3;
+                history.rookTo = move.from + 1;
+            } else { // queenside
+                history.rookFrom = move.from - 4;
+                history.rookTo = move.from - 1;
+            }
+            history.rookPiece = board[history.rookFrom];
+        }
+        
         int fromPiece = board[move.from];
         int color = fromPiece & (Piece::White | Piece::Black);
         int pieceType = fromPiece & 7;
-
-        // Update castling rights if the king moves.
+        
         if (pieceType == Piece::King) {
             if (color == Piece::White) {
                 canCastleKingsideWhite = false;
@@ -498,25 +536,20 @@ public:
                 canCastleKingsideBlack = false;
                 canCastleQueensideBlack = false;
             }
-        }
-        // If a rook moves from its starting square, cancel its castling right.
-        else if (pieceType == Piece::Rook) {
+        } else if (pieceType == Piece::Rook) {
             if (color == Piece::White) {
-                if (move.from == 7 * 8 + 7) { // h1
+                if (move.from == 7 * 8 + 7) 
                     canCastleKingsideWhite = false;
-                } else if (move.from == 7 * 8 + 0) { // a1
+                else if (move.from == 7 * 8 + 0) 
                     canCastleQueensideWhite = false;
-                }
             } else {
-                if (move.from == 0 * 8 + 7) { // h8
+                if (move.from == 0 * 8 + 7) 
                     canCastleKingsideBlack = false;
-                } else if (move.from == 0 * 8 + 0) { // a8
+                else if (move.from == 0 * 8 + 0) 
                     canCastleQueensideBlack = false;
-                }
             }
         }
         
-        // If a rook is captured from its starting square, update the opponent's castling rights.
         if (move.capturePiece != Piece::None && ((move.capturePiece & 7) == Piece::Rook)) {
             int capturedSquare = move.to;
             int capturedColor = move.capturePiece & (Piece::White | Piece::Black);
@@ -532,45 +565,94 @@ public:
                     canCastleQueensideBlack = false;
             }
         }
-
-        // Handle castling.
+        
+        // Handle castling: move the rook.
         if (move.isCastling) {
-            int rookFrom, rookTo;
-            if (move.to == move.from + 2) { // kingside
-                rookFrom = move.from + 3;
-                rookTo = move.from + 1;
-            } else { // queenside
-                rookFrom = move.from - 4;
-                rookTo = move.from - 1;
-            }
-            board[rookTo] = board[rookFrom];
-            board[rookFrom] = Piece::None;
+            board[history.rookTo] = board[history.rookFrom];
+            board[history.rookFrom] = Piece::None;
         }
-
+        
         // Handle en passant.
         if (move.isEnPassant) {
             int capturedPawnSquare = move.to + ((color == Piece::White) ? 8 : -8);
             board[capturedPawnSquare] = Piece::None;
             enPassantTarget = -1;
         } else if (pieceType == Piece::Pawn && abs(move.to - move.from) == 16) {
-            // Set en passant target if a pawn moved two squares.
             enPassantTarget = move.from + (move.to - move.from) / 2;
         } else {
             enPassantTarget = -1;
         }
-
+        
         // Handle promotion.
-        if (move.isPromotion) {
+        if (move.isPromotion)
             fromPiece = color | move.promotionPiece;
-        }
-
-        // Perform the move.
+        
+        // Make the move.
         board[move.from] = Piece::None;
         board[move.to] = fromPiece;
-
+        
         // Toggle side to move.
         sideToMove = (sideToMove == Piece::White) ? Piece::Black : Piece::White;
+        
+        // Finally, push the move history.
+        moveHistoryStack.push_back(history);
     }
+
+    void unmakeMove() {
+        if (moveHistoryStack.empty())
+            return; 
+        
+        MoveHistory history = moveHistoryStack.back();
+        moveHistoryStack.pop_back();
+        Move move = history.move;
+        
+        sideToMove = (sideToMove == Piece::White) ? Piece::Black : Piece::White;
+        
+
+        int movedPiece = board[move.to];
+        if (move.isPromotion)
+            movedPiece = (movedPiece & (Piece::White | Piece::Black)) | Piece::Pawn;
+        
+        board[move.from] = movedPiece;
+        board[move.to] = history.capturedPiece;
+        
+        if (move.isCastling) {
+            board[history.rookFrom] = history.rookPiece;
+            board[history.rookTo] = Piece::None;
+        }
+        
+        if (move.isEnPassant) {
+            int capturedPawnSquare = move.to + ((sideToMove == Piece::White) ? 8 : -8);
+            board[capturedPawnSquare] = move.capturePiece;
+        }
+        
+        enPassantTarget = history.oldEnPassant;
+        
+        canCastleKingsideWhite = history.oldCanCastleKingsideWhite;
+        canCastleQueensideWhite = history.oldCanCastleQueensideWhite;
+        canCastleKingsideBlack = history.oldCanCastleKingsideBlack;
+        canCastleQueensideBlack = history.oldCanCastleQueensideBlack;
+    }
+
+    int moveGenerationTest(int depth) {
+        if (depth == 0)
+            return 1;
+
+        int nodes = 0;
+        vector<Move> moves = generateLegalMoves();
+
+        // Loop through each move.
+        for (const Move &move : moves) {
+            makeMove(move);
+
+            nodes += moveGenerationTest(depth - 1);
+
+            unmakeMove();
+        }
+
+        return nodes;
+    }
+
 };
 
 string squareToString(int square) {
@@ -613,6 +695,11 @@ int main() {
             cout << "id name chessEngine\n";
             cout << "id author Rounak Paul\n";
             cout << "uciok\n";
+        } else if (token == "perft") {
+            int depth;
+            iss >> depth;
+            for(int i = 1; i <= depth; i++)
+                cout << "depth " << i << ": " << board.moveGenerationTest(i) << endl;
         } else if (token == "isready") {
             cout << "readyok\n";
         } else if (token == "position") {
