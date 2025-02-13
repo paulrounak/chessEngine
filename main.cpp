@@ -74,7 +74,6 @@ struct MoveHistory {
     int rookPiece = Piece::None;
 };
 
-// A history stack stored as a member variable.
 vector<MoveHistory> moveHistoryStack;
 
 class Board {
