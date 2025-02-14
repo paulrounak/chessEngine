@@ -15,6 +15,7 @@ public:
     bool canCastleKingsideWhite, canCastleQueensideWhite;
     bool canCastleKingsideBlack, canCastleQueensideBlack;
     int enPassantTarget;
+    int moveCount;
 
     Board();
     void fenPosition(const std::string& fen);
@@ -30,6 +31,12 @@ public:
     void makeMove(const Move& move);
     void unmakeMove();
     int moveGenerationTest(int depth);
+    int getMoveCount() const {
+        return moveCount;
+    }
+
+    Piece getPieceAt(int square) const;
+    
 
 private:
     std::vector<MoveHistory> moveHistoryStack;

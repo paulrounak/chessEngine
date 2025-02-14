@@ -89,6 +89,8 @@ void Board::makeMove(const Move& move) {
     // Make the move.
     board[move.from] = Piece::None;
     board[move.to] = fromPiece;
+
+    moveCount++;
     
     sideToMove = (sideToMove == Piece::White) ? Piece::Black : Piece::White;
     
@@ -129,4 +131,6 @@ void Board::unmakeMove() {
     canCastleQueensideWhite = history.oldCanCastleQueensideWhite;
     canCastleKingsideBlack = history.oldCanCastleKingsideBlack;
     canCastleQueensideBlack = history.oldCanCastleQueensideBlack;
+
+    moveCount--;
 }

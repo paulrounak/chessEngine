@@ -1,4 +1,13 @@
 #include "../headers/utils.h"
+#include "../headers/board.h"
+
+Piece Board::getPieceAt(int square) const {
+    int pieceCode = board[square];
+    Piece::Type type = static_cast<Piece::Type>(pieceCode & 0x7);
+    Piece::Color color = static_cast<Piece::Color>(pieceCode & 0x18);
+    return Piece(type, color);
+}
+
 
 std::string squareToString(int square) {
     int file = square % 8;

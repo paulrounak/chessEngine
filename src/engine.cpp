@@ -4,6 +4,7 @@
 #include <random>
 #include "../headers/board.h"
 #include "../headers/utils.h"
+#include "../headers/search.h"
 
 int main() {
     Board board;
@@ -67,15 +68,13 @@ int main() {
             }
         } else if (token == "go") {
             std::vector<Move> legalMoves = board.generateLegalMoves();
-            if (!legalMoves.empty()) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<> dis(0, legalMoves.size() - 1);
-                Move chosenMove = legalMoves[dis(gen)];
-                std::cout << "bestmove " << moveToUCI(chosenMove) << std::endl;
-            } else {
-                std::cout << "bestmove 0000\n";
-            }
+            Search search(board, 4);
+            Move bestMove = search.findBestMove();
+
+            std::cout << "bestmove " << moveToUCI(bestMove) << std::endl;
+
+            int evaluation = Evaluator::evaluate(board);
+            std::cout << "Evaluation: " << evaluation << std::endl;
         } else if (token == "quit") {
             break;
         }
